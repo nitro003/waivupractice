@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tekken WASD Input Trainer with Wave Dash</title>
+  <style>
+    body { background:#111;color:#0f0;font-family:monospace;padding:1rem;position:relative; }
+    table { width:100%;border-collapse:collapse;margin-top:2rem; }
+    th,td { border:1px solid #0f0;padding:0.5rem;text-align:center; }
+    #comboDisplay,#highScoreDisplay{
+      position:absolute;right:20px;font-size:1.5rem;background:#222;
+      padding:0.5rem 1rem;border-radius:5px;border:1px solid;
+    }
+    #comboDisplay{ top:10px;color:#0ff;border-color:#0ff; }
+    #highScoreDisplay{ top:60px;color:gold;border-color:gold; }
+  </style>
+</head>
+<body>
+  <h1>Tekken WASD Input Trainer</h1>
+  <p><strong>Wave Dash:</strong> → (neutral) ↓ ↘ — press D, release, S, then SD.</p>
+
+  <div id="comboDisplay">Wave Dash&nbsp;x0</div>
+  <div id="highScoreDisplay">High&nbsp;Score:&nbsp;x0</div>
+  <label for="sideSelect">Choose a side:</label>
+		<select id="sideSelect">
+			<option value="left">LEFT</option>
+			<option value="right">RIGHT</option>
+		</select>
+  <table id="myTable">
+    <thead>
+      <tr><th>Command</th><th>Delay&nbsp;(frames)</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+	const selectBox = document.getElementById("sideSelect");
+    const tbody               = document.querySelector('#myTable tbody');
+    const comboDisplay        = document.getElementById('comboDisplay');
+    const highScoreDisplay    = document.getElementById('highScoreDisplay');
+    const heldKeys            = new Set();
+
+    let activeDir=null, kdTime=null, neutralStart=null;
+    let waveState=0, waveCount=0, highScore=0;  // waveState: 0→→ 1→neutral 2→↓ 3→↘
+
+    /* ---------- helpers ---------- */
+    const dirFromKeys = keys => {
+      const w=keys.has('w')||keys.has('W'), a=keys.has('a')||keys.has('A'),
+            s=keys.has('s')||keys.has('S'), d=keys.has('d')||keys.has('D'),
+			t5=keys.has('8')||keys.has('5'), t6=keys.has('9'),
+			t4=keys.has('7')||keys.has('4'), t8=keys.has('0');
+      if ((s&&d) || (t5&&t6)) return '↘'; if ((s&&a)||(t5&&t4)) return '↙'; if (w&&d) return '↗'; if (w&&a) return '↖';
+      if (w||t8) return '↑';   if (s||t5) return '↓';   if (a||t4) return '←';   if (d||t6) return '→';
+      return null;
+    };
+
+    const logRow = (cmd, delay) => {
+      const r=document.createElement('tr');
+      r.innerHTML=`<td>${cmd}</td><td>${Math.min(delay,999)}</td>`;
+      tbody.insertBefore(r, tbody.firstChild);
+
+      /* ----- NEW: keep only 20 rows ----- */
+      while (tbody.rows.length > 20) tbody.deleteRow(tbody.rows.length-1);
+    };
+
+    const updateCombo = () => comboDisplay.textContent = `Wave Dash x${waveCount}`;
+    const updateHi    = () => { if (waveCount>highScore) highScoreDisplay.textContent=`High Score: x${highScore=waveCount}`; };
+    const resetWave   = () => { waveState=0; if (waveCount){ waveCount=0; updateCombo();} };
+
+    /* ---------- neutral polling ---------- */
+    setInterval(()=>{
+      if (!heldKeys.size && neutralStart===null){ neutralStart=performance.now(); }
+      if (neutralStart!==null && heldKeys.size){
+        const delay=Math.floor((performance.now()-neutralStart)/(1000/60));
+        if (delay>1) logRow('Neutral',delay);
+        neutralStart=null;
+      }
+    },10);
+
+    /* ---------- keydown ---------- */
+    document.addEventListener('keydown',e=>{
+      if(!'wasdWASD457890'.includes(e.key)) return;
+
+      heldKeys.add(e.key);
+      const dir=dirFromKeys(heldKeys);
+
+      if (dir && dir!==activeDir){
+        if (activeDir && kdTime){
+          logRow(activeDir, Math.floor((performance.now()-kdTime)/(1000/60)));
+        }
+        activeDir=dir; kdTime=performance.now();
+		if(selectBox.value === "right"){
+			/* wave-dash FSM */
+			if (waveState===0){ dir==='←' ? waveState=1 : resetWave(); }
+			else if (waveState===2){ dir==='↓' ? waveState=3 : resetWave(); }
+			else if (waveState===3){
+			  if(dir==='↙'){ ++waveCount; updateCombo(); updateHi(); waveState=0; }
+			  else resetWave();
+			}
+			else if (waveState===1){ resetWave(); }  // pressed something before neutral
+		}else if (selectBox.value === "left"){
+			/* wave-dash FSM */
+			if (waveState===0){ dir==='→' ? waveState=1 : resetWave(); }
+			else if (waveState===2){ dir==='↓' ? waveState=3 : resetWave(); }
+			else if (waveState===3){
+			  if(dir==='↘'){ ++waveCount; updateCombo(); updateHi(); waveState=0; }
+			  else resetWave();
+			}
+			else if (waveState===1){ resetWave(); }  // pressed something before neutral
+		}
+      }
+
+      /* end neutral state if key pressed */
+      if (neutralStart!==null){
+        const d=Math.floor((performance.now()-neutralStart)/(1000/60));
+        if (d>1) logRow('Neutral',d);
+        neutralStart=null;
+      }
+    });
+
+    /* ---------- keyup ---------- */
+    document.addEventListener('keyup',e=>{
+      heldKeys.delete(e.key);
+      const dir=dirFromKeys(heldKeys);
+
+      if (waveState===1 && !heldKeys.size){ waveState=2; } // reached neutral
+
+      if (activeDir && dir!==activeDir){
+        logRow(activeDir, Math.floor((performance.now()-kdTime)/(1000/60)));
+        activeDir=dir; kdTime = dir ? performance.now() : null;
+      }
+    });
+  </script>
+</body>
+</html>
