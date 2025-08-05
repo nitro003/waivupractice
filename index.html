@@ -15,16 +15,19 @@
   </style>
 </head>
 <body>
-  <h1>Tekken WASD Input Trainer</h1>
-  <p><strong>Wave Dash:</strong> → (neutral) ↓ ↘ — press D, release, S, then SD.</p>
+  <h1>Tekken Movement Input(WASD) Trainer</h1>
+  <p><strong>Wave Dash and Backdash Cancels</strong></p>
 
-  <div id="comboDisplay">Wave Dash&nbsp;x0</div>
+  <div id="comboDisplay">WAIVU&nbsp;x0</div>
   <div id="highScoreDisplay">High&nbsp;Score:&nbsp;x0</div>
   <label for="sideSelect">Choose a side:</label>
 		<select id="sideSelect">
-			<option value="left">LEFT</option>
-			<option value="right">RIGHT</option>
+			<option value="left">WAIVU LEFT</option>
+			<option value="right">WAIVU RIGHT</option>
+			<option value="leftkbd">KBD LEFT</option>
+			<option value="rightkbd">KBD RIGHT</option>
 		</select>
+  
   <table id="myTable">
     <thead>
       <tr><th>Command</th><th>Delay&nbsp;(frames)</th></tr>
@@ -40,16 +43,18 @@
     const heldKeys            = new Set();
 
     let activeDir=null, kdTime=null, neutralStart=null;
-    let waveState=0, waveCount=0, highScore=0;  // waveState: 0→→ 1→neutral 2→↓ 3→↘
+    let waveState=0, waveCount=0, highScore=0, totalSessionCount=0;  // waveState: 0→→ 1→neutral 2→↓ 3→↘
 
     /* ---------- helpers ---------- */
     const dirFromKeys = keys => {
       const w=keys.has('w')||keys.has('W'), a=keys.has('a')||keys.has('A'),
             s=keys.has('s')||keys.has('S'), d=keys.has('d')||keys.has('D'),
-			t5=keys.has('8')||keys.has('5'), t6=keys.has('9'),
-			t4=keys.has('7')||keys.has('4'), t8=keys.has('0');
+			t5=keys.has('8')||keys.has('5') || keys.has('2'), t6=keys.has('9') || keys.has('3'),
+			t4=keys.has('7')||keys.has('4') || keys.has('1'), t8=keys.has('0'),
+			a2=keys.has('u') || keys.has('U');
       if ((s&&d) || (t5&&t6)) return '↘'; if ((s&&a)||(t5&&t4)) return '↙'; if (w&&d) return '↗'; if (w&&a) return '↖';
       if (w||t8) return '↑';   if (s||t5) return '↓';   if (a||t4) return '←';   if (d||t6) return '→';
+	  if (a2) return 'RP'; if ( a2&&s&&d ) return 'DFRP';
       return null;
     };
 
@@ -61,9 +66,10 @@
       /* ----- NEW: keep only 20 rows ----- */
       while (tbody.rows.length > 20) tbody.deleteRow(tbody.rows.length-1);
     };
-
-    const updateCombo = () => comboDisplay.textContent = `Wave Dash x${waveCount}`;
-    const updateHi    = () => { if (waveCount>highScore) highScoreDisplay.textContent=`High Score: x${highScore=waveCount}`; };
+	let   movement    = "WAIVU"
+    const updateCombo = () => comboDisplay.textContent = `${movement} x${waveCount}`;
+    const updateHi    = (score) => { if (waveCount>highScore) highScoreDisplay.textContent=`High Score: x${highScore=score}`; };
+	const resetHi     = (score) => { highScore=0; highScoreDisplay.textContent=`High Score: x${highScore=score}`; totalSessionCount = 0;}
     const resetWave   = () => { waveState=0; if (waveCount){ waveCount=0; updateCombo();} };
 
     /* ---------- neutral polling ---------- */
@@ -75,10 +81,23 @@
         neutralStart=null;
       }
     },10);
+	
+	/* ---------- On Change -----------*/
+	selectBox.addEventListener('change', function () {
+      resetWave();
+	  resetHi(0);
+	  movement = selectBox.value === "right" || selectBox.value === "left" ? "WAIVU" : "KBD";
+	  updateCombo();
+    });
 
     /* ---------- keydown ---------- */
     document.addEventListener('keydown',e=>{
-      if(!'wasdWASD457890'.includes(e.key)) return;
+	  if("rR".includes(e.key)){
+		console.log("R");
+		resetWave();
+		resetHi(0);
+	  }
+      if(!'uwasdUWASD123457890'.includes(e.key)) return;
 
       heldKeys.add(e.key);
       const dir=dirFromKeys(heldKeys);
@@ -93,7 +112,7 @@
 			if (waveState===0){ dir==='←' ? waveState=1 : resetWave(); }
 			else if (waveState===2){ dir==='↓' ? waveState=3 : resetWave(); }
 			else if (waveState===3){
-			  if(dir==='↙'){ ++waveCount; updateCombo(); updateHi(); waveState=0; }
+			  if(dir==='↙'){ ++waveCount; ++totalSessionCount; updateCombo(); updateHi(waveCount); waveState=0; }
 			  else resetWave();
 			}
 			else if (waveState===1){ resetWave(); }  // pressed something before neutral
@@ -102,10 +121,32 @@
 			if (waveState===0){ dir==='→' ? waveState=1 : resetWave(); }
 			else if (waveState===2){ dir==='↓' ? waveState=3 : resetWave(); }
 			else if (waveState===3){
-			  if(dir==='↘'){ ++waveCount; updateCombo(); updateHi(); waveState=0; }
+			  if(dir==='↘'){ ++waveCount; ++totalSessionCount; updateCombo(); updateHi(waveCount); waveState=0; }
 			  else resetWave();
 			}
 			else if (waveState===1){ resetWave(); }  // pressed something before neutral
+		} else if (selectBox.value === "leftkbd"){
+			/* KBD LEFT */
+			if (waveState===0){ 
+				console.log( " wavestate: " + waveState);
+				dir==='←' ? waveState=1 : resetWave(); 
+			}
+			else if (waveState===1){ 
+				console.log("wavestate: " + waveState);
+				dir==='↙' ? waveState=2 : resetWave();
+				console.log("wavestate: " + waveState);
+			}
+		} else if (selectBox.value === "rightkbd"){
+			/* KBD RIGHT */
+			if (waveState===0){ 
+				console.log( " wavestate: " + waveState);
+				dir==='→' ? waveState=1 : resetWave(); 
+			}
+			else if (waveState===1){ 
+				console.log("wavestate: " + waveState);
+				dir==='↘' ? waveState=2 : resetWave();
+				console.log("wavestate: " + waveState);
+			}
 		}
       }
 
@@ -122,13 +163,23 @@
       heldKeys.delete(e.key);
       const dir=dirFromKeys(heldKeys);
 
-      if (waveState===1 && !heldKeys.size){ waveState=2; } // reached neutral
-
-      if (activeDir && dir!==activeDir){
+      if (waveState===1 && !heldKeys.size && (selectBox.value === "right" || selectBox.value === "left") ){ waveState=2; } // reached neutral
+	  else if (waveState===2 ){  // Backdash Cancel
+	    if (selectBox.value === "leftkbd"){
+			if(dir==='←'){ ++waveCount; ++totalSessionCount; updateCombo(); updateHi(waveCount); waveState=0; console.log( " wavestate: " + waveState); }
+			else resetWave();
+		}else if (selectBox.value === "rightkbd"){
+			if(dir==='→'){ ++waveCount; ++totalSessionCount; updateCombo(); updateHi(waveCount); waveState=0; console.log( " wavestate: " + waveState); }
+			else resetWave();
+		}
+	  } 
+      
+	  if (activeDir && dir!==activeDir){
         logRow(activeDir, Math.floor((performance.now()-kdTime)/(1000/60)));
         activeDir=dir; kdTime = dir ? performance.now() : null;
       }
     });
+	
   </script>
 </body>
 </html>
