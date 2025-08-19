@@ -1,45 +1,210 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Tekken WASD Input Trainer with Wave Dash</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TEKKEN WAIVU PRACTICE</title>
   <style>
-    body { background:#111;color:#0f0;font-family:monospace;padding:1rem;position:relative; }
-    table { width:100%;border-collapse:collapse;margin-top:2rem; }
-    th,td { border:1px solid #0f0;padding:0.5rem;text-align:center; }
-    #comboDisplay,#highScoreDisplay{
-      position:absolute;right:20px;font-size:1.5rem;background:#222;
+    :root {
+      --bg: #0f172a; --panel: #111827; --text: #e5e7eb; --muted: #9ca3af; --accent: #60a5fa; --ok: #34d399; --warn: #f59e0b; --danger: #f87171;
+    }
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial;margin:0;padding:32px;background:var(--bg);color:var(--text)}
+    h1{font-size:22px;margin:0 0 16px}
+    .wrap{display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+    .card{background:var(--panel);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .col{display:grid;gap:8px}
+    label{font-size:12px;color:var(--muted)}
+    input[type="number"],select{background:#0b1220;color:var(--text);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 10px;min-width:80px}
+    input[type="range"]{width:180px}
+    button{background:#0b1220;color:var(--text);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 14px;cursor:pointer;transition:transform .04s ease,background .2s ease,border-color .2s ease}
+    button:hover{border-color:rgba(255,255,255,.24)}
+    button:active{transform:translateY(1px)}
+    .primary{background:var(--accent);color:#081019;border-color:transparent}
+    .success{background:var(--ok);color:#04130d;border-color:transparent}
+    .warn{background:var(--warn);color:#141005;border-color:transparent}
+    .danger{background:var(--danger);color:#19090a;border-color:transparent}
+    .kpi{font-variant-numeric:tabular-nums;font-size:42px;font-weight:700;letter-spacing:.5px}
+    .subtle{color:var(--muted);font-size:12px}
+    .lights{display:flex;gap:8px;align-items:center}
+    .dot{width:14px;height:14px;border-radius:50%;background:#1f2937;border:1px solid rgba(255,255,255,.08);opacity:.5}
+    .dot.on{opacity:1;background:var(--accent)}
+    .dot.accent.on{background:#93c5fd}
+    .flex-between{display:flex;justify-content:space-between;align-items:center}
+    .timer-digits{font-variant-numeric:tabular-nums;font-size:48px;font-weight:800;letter-spacing:1px}
+    .grid{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
+    .hr{height:1px;background:rgba(255,255,255,.06);margin:12px 0}
+    .footer{margin-top:20px;color:var(--muted);font-size:12px}
+	#comboDisplay,#highScoreDisplay,#avgwaivu, #minwaivu{
+      position:absolute;right:20px;font-size:1.1rem;background:#222;
       padding:0.5rem 1rem;border-radius:5px;border:1px solid;
     }
     #comboDisplay{ top:10px;color:#0ff;border-color:#0ff; }
     #highScoreDisplay{ top:60px;color:gold;border-color:gold; }
+	#avgwaivu{ top:110px;color:gold;border-color:gold; }
+	#minwaivu{ top:160px;color:gold;border-color:gold; }
   </style>
 </head>
 <body>
-  <h1>Tekken Movement Input(WASD) Trainer</h1>
-  <p><strong>Wave Dash and Backdash Cancels</strong></p>
-
+  <h1>Metronome + Timer</h1>
   <div id="comboDisplay">WAIVU&nbsp;x0</div>
   <div id="highScoreDisplay">High&nbsp;Score:&nbsp;x0</div>
-  <label for="sideSelect">Choose a side:</label>
-		<select id="sideSelect">
+  <div id="avgwaivu">Accuracy&nbsp;Waivu:&nbsp;x0</div>
+  <div id="minwaivu">Total&nbsp;Waivu:&nbsp;x0</div>
+  <div class="card" style="margin-bottom:16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+	<div class="row">
+		<label for="sideSelect">Choose a side:</label>
+		<select id="sideSelect" tabindex="0">
 			<option value="left">WAIVU LEFT</option>
 			<option value="right">WAIVU RIGHT</option>
+			<option value="l-gf">godFIST LEFT</option>
+			<option value="r-gf">godFIST RIGHT</option>
 			<option value="leftkbd">KBD LEFT</option>
 			<option value="rightkbd">KBD RIGHT</option>
 		</select>
-  
-  <table id="myTable">
-    <thead>
-      <tr><th>Command</th><th>Delay&nbsp;(frames)</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+	</div>
+    <div class="row">
+      <button id="startAll" class="primary">Start</button>
+      <button id="pauseTimer">Pause Timer</button>
+      <button id="resetTimer" class="danger">Reset Timer</button>
+    </div>
+	
+    <div class="subtle">One button starts/stops <b>both</b>. Timer finishing will auto‑stop the metronome.</div>
+  </div>
 
+  <div class="wrap">
+    <div class="card">
+      <div class="flex-between">
+        <div>
+          <div class="subtle">Metronome</div>
+          <div class="kpi"><span id="bpmKpi">120</span> BPM</div>
+        </div>
+        <div class="lights" id="beatLights" aria-label="Beat lights"></div>
+      </div>
+      <div class="hr"></div>
+      <div class="row">
+        <div class="col"><label for="bpm">BPM</label><input id="bpm" type="number" min="20" max="300" value="120" /></div>
+        <div class="col"><label for="bpmRange">Adjust</label><input id="bpmRange" type="range" min="20" max="300" value="120" /></div>
+        <div class="col"><label for="beatsPerBar">Beats / Bar</label>
+          <select id="beatsPerBar"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select>
+        </div>
+        <div class="col"><label for="volume">Volume</label><input id="volume" type="range" min="0" max="1" step="0.01" value="0.6" /></div>
+      </div>
+      <div class="row" style="margin-top:8px;gap:8px;">
+        <button id="tapBtn" class="warn">Tap Tempo</button>
+      </div>
+      <div class="subtle">Tap 3–8× to set tempo. First beat is accented.</div>
+    </div>
+
+    <div class="card">
+      <div class="subtle">Timer</div>
+      <div class="timer-digits" id="timerDisplay">00:01:00</div>
+      <div class="grid">
+        <div class="col"><label>Hours</label><input id="tH" type="number" min="0" max="99" value="0"></div>
+        <div class="col"><label>Minutes</label><input id="tM" type="number" min="0" max="59" value="1"></div>
+        <div class="col"><label>Seconds</label><input id="tS" type="number" min="0" max="59" value="0"></div>
+      </div>
+    </div>
+	<div class="card">
+      <div class="subtle">Command History</div>
+      <table id="myTable">
+		<thead>
+		  <tr><th>Command</th><th>Delay&nbsp;(frames)</th></tr>
+		</thead>
+		<tbody></tbody>
+	  </table>
+    </div>
+  </div>
+
+  <div class="footer">Accurate Web Audio scheduling. Single Start/Stop controls both modules.</div>
+
+  <script>
+  // ------- Shared Audio Context -------
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = new AudioCtx();
+  let audioUnlocked = false;
+  function unlockAudio(){ if(audioUnlocked) return; const s=audioCtx.createBufferSource(); s.buffer=audioCtx.createBuffer(1,1,audioCtx.sampleRate); s.connect(audioCtx.destination); try{s.start(0);}catch(_){} audioCtx.resume(); audioUnlocked=true; }
+  ['click','touchstart','keydown'].forEach(ev=>document.addEventListener(ev,unlockAudio,{once:true}));
+
+  // ------- Metronome Factory -------
+  function createMetronome(root, opts={}){
+    const state={ bpm:clamp(+opts.bpm||120,20,300), beatsPerBar:clamp(+opts.beatsPerBar||4,2,12), gain:clamp(+opts.volume??0.6,0,1), isRunning:false, currentBeat:0, nextNoteTime:0, schedulerId:0, lookahead:0.025, scheduleAhead:0.1 };
+    const gain=audioCtx.createGain(); gain.gain.value=state.gain; gain.connect(audioCtx.destination);
+    const $bpm=root.querySelector('#bpm'), $bpmRange=root.querySelector('#bpmRange'), $bpmKpi=root.querySelector('#bpmKpi'), $beatsPerBar=root.querySelector('#beatsPerBar'), $volume=root.querySelector('#volume'), $tap=root.querySelector('#tapBtn'), $lights=root.querySelector('#beatLights');
+    function renderLights(){ if(!$lights) return; $lights.innerHTML=''; for(let i=0;i<state.beatsPerBar;i++){ const d=document.createElement('div'); d.className='dot'+(i===0?' accent':''); $lights.appendChild(d);} }
+    function setBpm(v){ state.bpm=clamp(Math.round(v),20,300); $bpm && ($bpm.value=state.bpm); $bpmRange && ($bpmRange.value=state.bpm); $bpmKpi && ($bpmKpi.textContent=state.bpm); }
+    function setBeatsPerBar(v){ state.beatsPerBar=clamp(Math.round(v),2,12); renderLights(); }
+    function setVolume(v){ state.gain=clamp(+v,0,1); gain.gain.value=state.gain; }
+    function scheduleClick(time,isAccent){ const osc=audioCtx.createOscillator(); const g=audioCtx.createGain(); osc.frequency.value=isAccent?2200:1350; const env=isAccent?0.001:0.002; const dur=0.03; g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(1.0,time+env); g.gain.exponentialRampToValueAtTime(0.0001,time+dur); osc.connect(g).connect(gain); osc.start(time); osc.stop(time+dur+0.005); }
+    function nextNote(){ const spb=60/state.bpm; state.nextNoteTime+=spb; state.currentBeat=(state.currentBeat+1)%state.beatsPerBar; }
+    function scheduler(){ while(state.nextNoteTime < audioCtx.currentTime + state.scheduleAhead){ const isAccent=(state.currentBeat===0); scheduleClick(state.nextNoteTime,isAccent); updateLightActive(state.currentBeat); nextNote(); } }
+    function updateLightActive(i){ if(!$lights) return; const dots=$lights.querySelectorAll('.dot'); dots.forEach(d=>d.classList.remove('on')); if(dots[i]) dots[i].classList.add('on'); }
+    function start(){ if(state.isRunning) return; unlockAudio(); state.isRunning=true; state.currentBeat=0; state.nextNoteTime=audioCtx.currentTime+0.06; state.schedulerId=setInterval(scheduler,state.lookahead*1000); }
+    function stop(){ if(!state.isRunning) return; state.isRunning=false; clearInterval(state.schedulerId); updateLightActive(-1); }
+    // Tap tempo
+    const tapTimes=[]; function tap(){ const now=performance.now(); tapTimes.push(now); while(tapTimes.length>8) tapTimes.shift(); if(tapTimes.length>=2){ const intervals=[]; for(let i=1;i<tapTimes.length;i++){ const dt=(tapTimes[i]-tapTimes[i-1])/1000; if(dt>0.2&&dt<2.5) intervals.push(dt);} if(intervals.length){ const avg=intervals.reduce((a,b)=>a+b,0)/intervals.length; setBpm(clamp(Math.round(60/avg),20,300)); } } }
+    // UI
+    $bpm?.addEventListener('input',e=>setBpm(e.target.value));
+    $bpmRange?.addEventListener('input',e=>setBpm(e.target.value));
+    $beatsPerBar?.addEventListener('change',e=>setBeatsPerBar(e.target.value));
+    $volume?.addEventListener('input',e=>setVolume(e.target.value));
+    $tap?.addEventListener('click',tap);
+    renderLights(); setBpm(state.bpm);
+    return { start, stop, setBpm, setBeatsPerBar, setVolume };
+  }
+
+  // ------- Timer Factory -------
+  function createTimer(root, opts={}){
+    let targetSec=Math.max(0,+opts.totalSeconds||60), remaining=targetSec, running=false, rafId=0, lastTs=0; let onDone=opts.onDone||(()=>{});
+    const $display=root.querySelector('#timerDisplay'), $h=root.querySelector('#tH'), $m=root.querySelector('#tM'), $s=root.querySelector('#tS');
+    function setFromInputs(){ const h=clamp(+($h?.value||0),0,99), m=clamp(+($m?.value||0),0,59), s=clamp(+($s?.value||0),0,59); targetSec=(h*3600+m*60+s)||0; if(!running) remaining=targetSec; render(); }
+    function format(sec){ sec=Math.max(0,Math.floor(sec)); const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=Math.floor(sec%60); return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
+    function render(){ $display && ($display.textContent=format(remaining)); }
+    function loop(ts){ if(!running) return; if(!lastTs) lastTs=ts; const dt=(ts-lastTs)/1000; lastTs=ts; remaining-=dt; if(remaining<=0){ remaining=0; running=false; lastTs=0; render(); chime(); onDone(); return; } render(); rafId=requestAnimationFrame(loop); }
+    function start(){ if(running) return; if(remaining<=0) remaining=targetSec||0; running=true; lastTs=0; unlockAudio(); rafId=requestAnimationFrame(loop); }
+    function pause(){ running=false; lastTs=0; cancelAnimationFrame(rafId); }
+    function reset(){ running=false; lastTs=0; remaining=targetSec; render(); }
+    function chime(){ const now=audioCtx.currentTime+0.02; for(let i=0;i<3;i++){ beep(now+i*0.15,880,0.09,0.25);} }
+    function beep(time,freq=880,dur=0.1,vol=0.2){ const osc=audioCtx.createOscillator(); const g=audioCtx.createGain(); osc.type='sine'; osc.frequency.value=freq; g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(vol,time+0.005); g.gain.exponentialRampToValueAtTime(0.0001,time+dur); osc.connect(g).connect(audioCtx.destination); osc.start(time); osc.stop(time+dur+0.03); }
+    [$h,$m,$s].forEach(inp=>inp?.addEventListener('input',setFromInputs));
+    setFromInputs(); render();
+    return { start, pause, reset, setFromInputs, get seconds(){ return remaining; } };
+  }
+
+  // ------- Helpers -------
+  function clamp(v,min,max){ v=+v; if(Number.isNaN(v)) return min; return Math.min(max,Math.max(min,v)); }
+
+  // ------- Instantiate -------
+  const metro=createMetronome(document,{ bpm:120, beatsPerBar:4, volume:0.6 });
+  const timer=createTimer(document,{ totalSeconds:60, onDone:()=>{ metro.stop(); toggleStart(false); } });
+
+  // ------- Unified Controls -------
+  const $startAll=document.getElementById('startAll');
+  const $pauseTimer=document.getElementById('pauseTimer');
+  const $resetTimer=document.getElementById('resetTimer');
+
+  function toggleStart(running){ $startAll.textContent = running ? 'Stop' : 'Start'; if(running){ $startAll.classList.remove('primary'); $startAll.classList.add('danger'); } else { $startAll.classList.remove('danger'); $startAll.classList.add('primary'); } }
+
+  $startAll.addEventListener('click',()=>{
+    // Start/Stop BOTH: metronome + timer
+    if($startAll.textContent==='Start'){
+      metro.start(); timer.start(); toggleStart(true);
+    } else {
+      metro.stop(); timer.pause(); toggleStart(false);
+    }
+  });
+
+  $pauseTimer.addEventListener('click',()=>{ timer.pause(); toggleStart(false); });
+  $resetTimer.addEventListener('click',()=>{ timer.reset(); });
+  </script>
   <script>
 	const selectBox = document.getElementById("sideSelect");
     const tbody               = document.querySelector('#myTable tbody');
     const comboDisplay        = document.getElementById('comboDisplay');
     const highScoreDisplay    = document.getElementById('highScoreDisplay');
+	const avgwaivu    		  = document.getElementById('avgwaivu');
+	const minwaivu    		  = document.getElementById('minwaivu');
     const heldKeys            = new Set();
 
     let activeDir=null, kdTime=null, neutralStart=null;
@@ -52,9 +217,10 @@
 			t5=keys.has('8')||keys.has('5') || keys.has('2'), t6=keys.has('9') || keys.has('3'),
 			t4=keys.has('7')||keys.has('4') || keys.has('1'), t8=keys.has('0'),
 			a2=keys.has('u') || keys.has('U');
+	  if ( a2&&s&&d ) return 'L-DFRP'; if ( a2&&s&&a ) return 'R-DFRP';
       if ((s&&d) || (t5&&t6)) return '↘'; if ((s&&a)||(t5&&t4)) return '↙'; if (w&&d) return '↗'; if (w&&a) return '↖';
       if (w||t8) return '↑';   if (s||t5) return '↓';   if (a||t4) return '←';   if (d||t6) return '→';
-	  if (a2) return 'RP'; if ( a2&&s&&d ) return 'DFRP';
+	  if (a2) return 'RP';
       return null;
     };
 
@@ -66,11 +232,28 @@
       /* ----- NEW: keep only 20 rows ----- */
       while (tbody.rows.length > 20) tbody.deleteRow(tbody.rows.length-1);
     };
-	let   movement    = "WAIVU"
+	let   avgArray	  = [];
+	var   mistakes    = 0;
+	const avg = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+	const sum = arr => arr.reduce((a, b) => a + b, 0);
+	let   update_avg  = (curr_wave,update) => { 
+												if (update) {
+													avgArray.push(curr_wave);
+													var sum_val  = sum(avgArray);
+													var total    = sum_val + mistakes;
+													var accuracy = ((sum_val / total) * 100).toFixed(0);
+													avgwaivu.textContent=`Accuracy Waivu: x${accuracy}`; 
+													minwaivu.textContent=`Total Waivu: x${sum_val}`;
+												}else {
+													avgwaivu.textContent=`Accuracy Waivu: x0`; 
+													minwaivu.textContent=`Total Waivu: x0`;
+												} 
+											} ;
+	let   movement    = "WAIVU";
     const updateCombo = () => comboDisplay.textContent = `${movement} x${waveCount}`;
     const updateHi    = (score) => { if (waveCount>highScore) highScoreDisplay.textContent=`High Score: x${highScore=score}`; };
-	const resetHi     = (score) => { highScore=0; highScoreDisplay.textContent=`High Score: x${highScore=score}`; totalSessionCount = 0;}
-    const resetWave   = () => { waveState=0; if (waveCount){ waveCount=0; updateCombo();} };
+	const resetHi     = (score) => { avgArray = []; update_avg(0,false); highScore=0; highScoreDisplay.textContent=`High Score: x${highScore=score}`; totalSessionCount = 0;}
+    const resetWave   = () => { if (avgArray.length > 0){ ++mistakes; } update_avg(waveCount,true); waveState=0;  if (waveCount){ waveCount=0; updateCombo();} };
 
     /* ---------- neutral polling ---------- */
     setInterval(()=>{
@@ -86,21 +269,29 @@
 	selectBox.addEventListener('change', function () {
       resetWave();
 	  resetHi(0);
-	  movement = selectBox.value === "right" || selectBox.value === "left" ? "WAIVU" : "KBD";
+	  movement = selectBox.value === "right" || selectBox.value === "left" ? "WAIVU" : 
+				selectBox.value === "leftkbd" || selectBox.value === "rightkbd" ? "KBD" : "GODFIST";
+	  
+	  
+	  
 	  updateCombo();
     });
 
     /* ---------- keydown ---------- */
     document.addEventListener('keydown',e=>{
 	  if("rR".includes(e.key)){
-		console.log("R");
 		resetWave();
 		resetHi(0);
+		mistakes = 0;
+	  }
+	  if("tT".includes(e.key)){
+		highScoreDisplay.textContent=`Avg: x${avg(avgArray).toFixed(0)}`;
 	  }
       if(!'uwasdUWASD123457890'.includes(e.key)) return;
 
       heldKeys.add(e.key);
       const dir=dirFromKeys(heldKeys);
+	  
 
       if (dir && dir!==activeDir){
         if (activeDir && kdTime){
@@ -128,26 +319,43 @@
 		} else if (selectBox.value === "leftkbd"){
 			/* KBD LEFT */
 			if (waveState===0){ 
-				console.log( " wavestate: " + waveState);
+
 				dir==='←' ? waveState=1 : resetWave(); 
 			}
 			else if (waveState===1){ 
-				console.log("wavestate: " + waveState);
+
 				dir==='↙' ? waveState=2 : resetWave();
-				console.log("wavestate: " + waveState);
+
 			}
 		} else if (selectBox.value === "rightkbd"){
 			/* KBD RIGHT */
 			if (waveState===0){ 
-				console.log( " wavestate: " + waveState);
+
 				dir==='→' ? waveState=1 : resetWave(); 
 			}
 			else if (waveState===1){ 
-				console.log("wavestate: " + waveState);
 				dir==='↘' ? waveState=2 : resetWave();
-				console.log("wavestate: " + waveState);
+
 			}
-		}
+		}else if(selectBox.value === "r-gf"){
+			/* wave-dash FSM */
+			if (waveState===0){ dir==='←' ? waveState=1 : resetWave(); }
+			else if (waveState===2){ dir==='↓' ? waveState=3 : resetWave(); }
+			else if (waveState===3){
+			  if(dir==='R-DFRP'){ ++waveCount; ++totalSessionCount; updateCombo(); updateHi(waveCount); waveState=0; }
+			  else resetWave();
+			}
+			else if (waveState===1){ resetWave(); }  // pressed something before neutral
+		}else if (selectBox.value === "l-gf"){
+			/* wave-dash FSM */
+			if (waveState===0){ dir==='→' ? waveState=1 : resetWave(); }
+			else if (waveState===2){console.log(waveState); dir==='↓' ? waveState=3 : resetWave(); }
+			else if (waveState===3){	
+			  if(dir==='L-DFRP'){ ++waveCount; ++totalSessionCount; updateCombo(); updateHi(waveCount); waveState=0; }
+			  else resetWave();
+			}
+			else if (waveState===1){ resetWave(); }  // pressed something before neutral
+		} 
       }
 
       /* end neutral state if key pressed */
@@ -163,7 +371,7 @@
       heldKeys.delete(e.key);
       const dir=dirFromKeys(heldKeys);
 
-      if (waveState===1 && !heldKeys.size && (selectBox.value === "right" || selectBox.value === "left") ){ waveState=2; } // reached neutral
+      if (waveState===1 && !heldKeys.size && (selectBox.value === "right" || selectBox.value === "left" || selectBox.value === "l-gf" || selectBox.value === "r-gf") ){ waveState=2; } // reached neutral
 	  else if (waveState===2 ){  // Backdash Cancel
 	    if (selectBox.value === "leftkbd"){
 			if(dir==='←'){ ++waveCount; ++totalSessionCount; updateCombo(); updateHi(waveCount); waveState=0; console.log( " wavestate: " + waveState); }
